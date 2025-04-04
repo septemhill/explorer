@@ -1,52 +1,64 @@
 "use client"
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { formatEther, Block, Transaction } from "viem";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
+import { formatEther } from "viem"
 
-import { getBlockWithTransactions } from "@/lib/ethereum";
-import { formatTimestamp, truncateHash } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { AddressWithCopy } from "@/components/address-with-copy";
+import { formatTimestamp } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Transaction } from "viem"
 
 export default function BlockDetails() {
-  const params = useParams();
-  const router = useRouter();
-  const [block, setBlock] = useState<Block<bigint, true> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const hash = params.hash as string;
+  const params = useParams()
+  const router = useRouter()
+  const [block, setBlock] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const hash = params.hash
 
   useEffect(() => {
     async function fetchBlock() {
       try {
-        const blockData = await getBlockWithTransactions(hash);
-        if (blockData) {
-          setBlock(blockData);
-        } else {
-          router.push("/");
+        const response = await fetch(`/api/blocks/${hash}`)
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error("Block not found")
+          }
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-      } catch (error) {
-        console.error("Failed to fetch block:", error);
-        router.push("/");
+
+        const data = await response.json()
+        setBlock(data.block)
+      } catch (err) {
+        console.error("Failed to fetch block:", err)
+        setError(err.message || "Failed to load block details")
+        if (err.message === "Block not found") {
+          router.push("/")
+        }
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchBlock();
-  }, [hash, router]);
+    fetchBlock()
+  }, [hash, router])
 
   if (loading) {
-    return <div className="container mx-auto py-8 px-4">Loading block details...</div>;
+    return <div className="container mx-auto py-8 px-4">Loading block details...</div>
+  }
+
+  if (error) {
+    return <div className="container mx-auto py-8 px-4 text-red-500">{error}</div>
   }
 
   if (!block) {
-    return <div className="container mx-auto py-8 px-4">Block not found</div>;
+    return <div className="container mx-auto py-8 px-4">Block not found</div>
   }
 
   return (
@@ -69,40 +81,37 @@ export default function BlockDetails() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div>
-                <span className="font-semibold">Hash:</span> <span className="text-sm">{truncateHash(block.hash)}</span>
+                <span className="font-semibold">Hash:</span> {block.hash}
               </div>
               <div>
-                <span className="font-semibold">Timestamp:</span> <span className="text-sm">{formatTimestamp(Number(block.timestamp) * 1000)}</span>
+                <span className="font-semibold">Timestamp:</span> {formatTimestamp(Number(block.timestamp) * 1000)}
               </div>
               <div>
-                <span className="font-semibold">Size:</span> <span className="text-sm">{block.size?.toString() || "N/A"} bytes</span>
+                <span className="font-semibold">Size:</span> {block.size?.toString() || "N/A"} bytes
               </div>
               <div>
-                <span className="font-semibold">Parent Hash:</span>
-                <Link href={`/block/${block.parentHash}`} className="text-blue-500 dark:text-blue-400 hover:underline">
-                  <span className="text-sm">{truncateHash(block.parentHash)}</span>
-                </Link>
+                <span className="font-semibold">Parent Hash:</span> {block.parentHash}
               </div>
             </div>
             <div className="space-y-2">
               <div>
-                <span className="font-semibold">Miner:</span> <span className="text-sm">{block.miner}</span>
+                <span className="font-semibold">Miner:</span> {block.miner}
               </div>
               <div>
-                <span className="font-semibold">Gas Used:</span> <span className="text-sm">{block.gasUsed?.toString() || "N/A"}</span>
+                <span className="font-semibold">Gas Used:</span> {block.gasUsed?.toString() || "N/A"}
               </div>
               <div>
                 <span className="font-semibold">Base Fee:</span>{" "}
-                <span className="text-sm">{block.baseFeePerGas ? formatEther(block.baseFeePerGas) : "N/A"} ETH</span>
+                {block.baseFeePerGas ? formatEther(block.baseFeePerGas) : "N/A"} ETH
               </div>
               <div>
-                <span className="font-semibold">Gas Limit:</span> <span className="text-sm">{block.gasLimit?.toString() || "N/A"}</span>
+                <span className="font-semibold">Gas Limit:</span> {block.gasLimit?.toString() || "N/A"}
               </div>
               <div>
-                <span className="font-semibold">Nonce:</span> <span className="text-sm">{block.nonce || "N/A"}</span>
+                <span className="font-semibold">Block Number:</span> {block.number}
               </div>
               <div>
-                <span className="font-semibold">Number of Transactions:</span> <span className="text-sm">{block.transactions.length}</span>
+                <span className="font-semibold">Number of Transactions:</span> {block.transactions.length}
               </div>
             </div>
           </div>
@@ -124,27 +133,18 @@ export default function BlockDetails() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {block.transactions && Array.isArray(block.transactions) && block.transactions.map((tx) => {
-                const transaction = tx as Transaction;
-                return (<TableRow key={transaction.hash}>
+              {block.transactions.map((tx: Transaction) => (
+                <TableRow key={tx.hash}>
                   <TableCell>
-                    <Link href={`/transaction/${transaction.hash}`} className="text-blue-500 dark:text-blue-400 hover:underline">
-                      {transaction.hash.substring(0, 16)}...
+                    <Link href={`/transaction/${tx.hash}`} className="text-blue-500 dark:text-blue-400 hover:underline">
+                      {tx.hash.substring(0, 16)}...
                     </Link>
                   </TableCell>
-                  <TableCell>
-                    {transaction.from ? (
-                      <AddressWithCopy address={transaction.from} />
-                    ) : "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.to ? (
-                      <AddressWithCopy address={transaction.to} />
-                    ) : "Contract Creation"}
-                  </TableCell>
-                  <TableCell>{transaction.value ? formatEther(transaction.value) : "0"} ETH</TableCell>
-                </TableRow>)
-              })}
+                  <TableCell>{tx.from ? `${tx.from.substring(0, 10)}...` : "N/A"}</TableCell>
+                  <TableCell>{tx.to ? `${tx.to.substring(0, 10)}...` : "Contract Creation"}</TableCell>
+                  <TableCell>{tx.value ? formatEther(tx.value) : "0"} ETH</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,34 +1,33 @@
 "use client"
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Clock, Database, User } from "lucide-react";
-import { Block } from "viem";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { Clock, Database, User } from "lucide-react"
 
-import { getLatestBlocks } from "@/lib/ethereum";
-import { formatTimestamp, truncateHash } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AddressWithCopy } from "@/components/address-with-copy";
-
-interface BlockData {
-  hash: `0x${string}` | null;
-  miner: `0x${string}`;
-  timestamp: number | bigint;
-  number: bigint;
-}
+import { formatTimestamp } from "@/lib/utils"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Block } from "viem"
 
 export function Blocks() {
-  const [blocks, setBlocks] = useState<BlockData[]>([])
+  const [blocks, setBlocks] = useState<Block[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     async function fetchBlocks() {
       try {
-        const latestBlocks = await getLatestBlocks()
-        setBlocks(latestBlocks as BlockData[])
-      } catch (error) {
-        console.error("Failed to fetch blocks:", error)
+        const response = await fetch("/api/blocks")
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        setBlocks(data.blocks)
+      } catch (err) {
+        console.error("Failed to fetch blocks:", err)
+        setError("Failed to load blocks. Please try again later.")
       } finally {
         setLoading(false)
       }
@@ -50,6 +49,19 @@ export function Blocks() {
     )
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Latest Blocks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-red-500 py-4">{error}</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -66,27 +78,23 @@ export function Blocks() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {blocks.map((block) => {
-              return (<TableRow key={block.hash ?? ""}>
-                <TableCell>
-                  <Link
-                    href={`/block/${block.hash}`}
-                    className="text-blue-500 dark:text-blue-400 hover:underline"
-                  >
-                    {block.number?.toString() || "N/A"}
-                  </Link>
-                </TableCell>
+            {Array.isArray(blocks) && blocks.map((block) => (
+              <TableRow key={block.hash}>
+                <TableCell>{block.number}</TableCell>
                 <TableCell>
                   <Link
                     href={`/block/${block.hash}`}
                     className="text-blue-500 dark:text-blue-400 hover:underline flex items-center"
                   >
                     <Database className="h-4 w-4 mr-2" />
-                    {truncateHash(block.hash)}
+                    {block.hash.substring(0, 16)}...
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <AddressWithCopy address={block.miner} className="mr-2" />
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    {block.miner.substring(0, 16)}...
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
@@ -94,8 +102,8 @@ export function Blocks() {
                     {formatTimestamp(Number(block.timestamp) * 1000)}
                   </div>
                 </TableCell>
-              </TableRow>)
-            })}
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </CardContent>

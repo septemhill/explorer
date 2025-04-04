@@ -10,7 +10,3 @@ export function formatTimestamp(timestamp: number): string {
   return date.toLocaleString()
 }
 
-export const truncateHash = (hash: string | null | undefined) => {
-  if (!hash) return "N/A";
-  return hash?.substring(0, 10) + "..." + hash?.substring((hash?.length || 0) - 9);
-};
