@@ -7,13 +7,12 @@ export async function GET(request: Request, { params }: { params: { hash: string
   const { hash } = await params
 
   try {
-    const block = await getBlockByHash(hash as `0x${string}`)
-
-    if (!block) {
+    const rawblock = await getBlockByHash(hash as `0x${string}`)
+    if (!rawblock) {
       return NextResponse.json({ error: "Block not found" }, { status: 404 })
     }
-    const safeBlock = JSON.parse(JSON.stringify(block, (_, v) => typeof v === 'bigint' ? v.toString() : v))
-    return NextResponse.json({ safeBlock })
+    const block = JSON.parse(JSON.stringify(rawblock, (_, v) => typeof v === 'bigint' ? v.toString() : v))
+    return NextResponse.json({ block })
   } catch (error) {
     console.error(`Error fetching block ${hash}:`, error)
     return NextResponse.json({ error: "Failed to fetch block" }, { status: 500 })

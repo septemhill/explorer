@@ -80,7 +80,11 @@ export function Blocks() {
           <TableBody>
             {Array.isArray(blocks) && blocks.map((block) => (
               <TableRow key={block.hash}>
-                <TableCell>{block.number}</TableCell>
+                <TableCell>
+                  <Link href={`/block/${block.hash}`} className="text-blue-500 dark:text-blue-400 hover:underline">
+                    {block.number}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   <Link
                     href={`/block/${block.hash}`}
