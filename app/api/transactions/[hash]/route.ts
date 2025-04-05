@@ -5,20 +5,23 @@ import { getTransaction } from "@/lib/ethereum"
 
 
 export async function GET(request: Request, { params }: { params: { hash: string } }) {
+  const { hash } = await params
   try {
-    const txHash = params.hash as `0x${string}`
-    const transaction = await getTransaction(txHash)
+    const tx = await getTransaction(hash as `0x${string}`)
+    console.log(tx)
 
-    if (!transaction) {
-      return NextResponse.json({ error: "Transaction not found" }, { status: 404 })
+    if (!tx) {
+      return NextResponse.json({ error: "Transaction not found 1" }, { status: 404 })
     }
+
+    const transaction = JSON.parse(JSON.stringify(tx, (_, v) => typeof v === 'bigint' ? v.toString() : v))
 
     return NextResponse.json({
       transaction,
       // receipt,
     })
   } catch (error) {
-    console.error(`Error fetching transaction ${params.hash}:`, error)
+    console.error(`Error fetching transaction ${hash}:`, error)
     return NextResponse.json({ error: "Failed to fetch transaction" }, { status: 500 })
   }
 }

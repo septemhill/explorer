@@ -30,7 +30,7 @@ export async function getLatestBlocks(count = 10) {
 export async function getBlockByHash(hash: string) {
   try {
     return await client.getBlock({
-      blockHash: hash,
+      blockHash: hash as `0x${string}`,
       includeTransactions: true,
     })
   } catch (error) {
@@ -39,21 +39,12 @@ export async function getBlockByHash(hash: string) {
   }
 }
 
-export async function getBlockWithTransactions(hash: string) {
-  try {
-    return await client.getBlockWithTransactions(hash)
-  } catch (error) {
-    console.error(`Error fetching block with transactions ${hash}:`, error)
-    return null
-  }
-}
-
 export async function getTransaction(hash: string) {
   try {
-    const tx = await client.getTransaction(hash)
+    const tx = await client.getTransaction({ hash: hash as `0x${string}` })
     if (!tx) return null
 
-    const receipt = await client.getTransactionReceipt(hash)
+    const receipt = await client.getTransactionReceipt({ hash: hash as `0x${string}` })
 
     return {
       ...tx,
